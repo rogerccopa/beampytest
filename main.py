@@ -52,6 +52,11 @@ def run(argv=None):
         output_pc = output_pc | "Split" >> (beam.ParDo(WordExtractingDoFn()).with_output_types(str))
         output_pc = output_pc | "PairWithOne" >> beam.Map(lambda x: (x, 1))
         output_pc = output_pc | "GroupAndSum" >> beam.CombinePerKey(sum)
+
+        def format_result(word, count):
+            return "%s: %d" % (word, count)
+        
+        output_pc = output_pc | "Format" >> beam.MapTuple(format_result)
         output_pc | 'Write' >> WriteToText(known_args.output)
 
     
