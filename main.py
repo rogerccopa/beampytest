@@ -1,5 +1,6 @@
 # source: https://medium.com/google-cloud/understanding-the-dataflow-quickstart-for-python-tutorial-e134f39564c7
 
+import logging
 import argparse
 import apache_beam  as beam
 from apache_beam.io import ReadFromText
@@ -26,7 +27,17 @@ def run(argv=None):
     pipeline_options = PipelineOptions(pipeline_args)
     
     with beam.Pipeline(options = pipeline_options) as p:
+
+        class ComputeWordLengthFn(beam.DoFn):
+            def process(self, element):
+                # Note that this will print each line of the input collection
+                # and wait for user keyboard input to continue
+                print(element)
+                input()
+                return [len(element)]
+        
         output_pc = p | 'Read' >> ReadFromText(known_args.input)
+        output_pc = output_pc | "Lengths" >> beam.ParDo(ComputeWordLengthFn())
         output_pc | 'Write' >> WriteToText(known_args.output)
 
     
