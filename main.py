@@ -2,10 +2,30 @@
 
 import logging
 import argparse
+import re
+
 import apache_beam  as beam
 from apache_beam.io import ReadFromText
 from apache_beam.io import WriteToText
 from apache_beam.options.pipeline_options import PipelineOptions
+
+class WordExtractingDoFn(beam.DoFn):
+    """Parse each line of input text into words."""
+    def process(self, element):
+        """ Returns an iterator over the words of this element.
+            The element is a lineo f text. If the line is blank, note that, too
+            Args:
+                element: the element being processed
+            Returns:
+                The processed element.
+        """
+        print(element)
+        words = re.findall(r'[\w\']+', element, re.UNICODE)
+        print(words)
+        input()
+
+        return words
+    
 
 def run(argv=None):
     # Crates a new instance of the ArgumentParser class
@@ -28,16 +48,8 @@ def run(argv=None):
     
     with beam.Pipeline(options = pipeline_options) as p:
 
-        class ComputeWordLengthFn(beam.DoFn):
-            def process(self, element):
-                # Note that this will print each line of the input collection
-                # and wait for user keyboard input to continue
-                print(element)
-                input()
-                return [len(element)]
-        
         output_pc = p | 'Read' >> ReadFromText(known_args.input)
-        output_pc = output_pc | "Lengths" >> beam.ParDo(ComputeWordLengthFn())
+        output_pc = output_pc | "Split" >> (beam.ParDo(WordExtractingDoFn()).with_output_types(str))
         output_pc | 'Write' >> WriteToText(known_args.output)
 
     
