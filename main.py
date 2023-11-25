@@ -8,6 +8,7 @@ import apache_beam  as beam
 from apache_beam.io import ReadFromText
 from apache_beam.io import WriteToText
 from apache_beam.options.pipeline_options import PipelineOptions
+from apache_beam.options.pipeline_options import SetupOptions
 
 class WordExtractingDoFn(beam.DoFn):
     """Parse each line of input text into words."""
@@ -27,7 +28,7 @@ class WordExtractingDoFn(beam.DoFn):
         return words
     
 
-def run(argv=None):
+def run(argv=None, save_main_session=True):
     # Crates a new instance of the ArgumentParser class
     parser = argparse.ArgumentParser()
 
@@ -45,19 +46,24 @@ def run(argv=None):
     
     # Take the list of misc arguments and pass them as pipeline options
     pipeline_options = PipelineOptions(pipeline_args)
+    pipeline_options.view_as(SetupOptions).save_main_session = save_main_session
     
     with beam.Pipeline(options = pipeline_options) as p:
+        lines = p | "Read" >> ReadFromText(known_args.input)
 
-        output_pc = p | 'Read' >> ReadFromText(known_args.input)
-        output_pc = output_pc | "Split" >> (beam.ParDo(WordExtractingDoFn()).with_output_types(str))
-        output_pc = output_pc | "PairWithOne" >> beam.Map(lambda x: (x, 1))
-        output_pc = output_pc | "GroupAndSum" >> beam.CombinePerKey(sum)
+        counts = (
+            lines
+            | "Split" >> (beam.ParDo(WordExtractingDoFn()).with_output_types(str))
+            | "LowerChars" >> beam.Map(lambda w: w.lower())
+            | "PairWithOne" >> beam.Map(lambda x: (x, 1))
+            | "GroupAndSum" >> beam.CombinePerKey(sum)
+        )
 
         def format_result(word, count):
             return "%s: %d" % (word, count)
         
-        output_pc = output_pc | "Format" >> beam.MapTuple(format_result)
-        output_pc | 'Write' >> WriteToText(known_args.output)
+        output = counts | "Format" >> beam.MapTuple(format_result)
+        output | 'Write' >> WriteToText(known_args.output)
 
     
 if __name__ == '__main__':
