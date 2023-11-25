@@ -50,8 +50,10 @@ def run(argv=None):
 
         output_pc = p | 'Read' >> ReadFromText(known_args.input)
         output_pc = output_pc | "Split" >> (beam.ParDo(WordExtractingDoFn()).with_output_types(str))
+        output_pc = output_pc | 'PairWithOne' >> beam.Map(lambda x: (x, 1))
         output_pc | 'Write' >> WriteToText(known_args.output)
 
     
 if __name__ == '__main__':
+    logging.getLogger().setLevel(logging.INFO)
     run()
