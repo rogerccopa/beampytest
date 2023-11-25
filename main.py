@@ -2,6 +2,7 @@
 
 import argparse
 import apache_beam  as beam
+from apache_beam.options.pipeline_options import PipelineOptions
 
 def run(argv=None):
     # Crates a new instance of the ArgumentParser class
@@ -10,16 +11,20 @@ def run(argv=None):
     # Adds an argument to listen for
     parser.add_argument(
         '--input',
+        dest='input',
         default='gs://dataflow-samples/shakespeare/kinglear.txt')
     parser.add_argument(
         '--output',
+        dest='output',
         required=True)
 
     known_args, pipeline_args = parser.parse_known_args(argv)
-    # CONTINUE HERE...
     
-    with beam.Pipeline() as p:
-        print("Hello World")
+    # Take the list of misc arguments and pass them as pipeline options
+    pipeline_options = PipelineOptions(pipeline_args)
+    
+    with beam.Pipeline(options = pipeline_options) as p:
+        print(known_args)
     
 if __name__ == '__main__':
     run()
