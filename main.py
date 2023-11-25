@@ -2,6 +2,8 @@
 
 import argparse
 import apache_beam  as beam
+from apache_beam.io import ReadFromText
+from apache_beam.io import WriteToText
 from apache_beam.options.pipeline_options import PipelineOptions
 
 def run(argv=None):
@@ -24,7 +26,9 @@ def run(argv=None):
     pipeline_options = PipelineOptions(pipeline_args)
     
     with beam.Pipeline(options = pipeline_options) as p:
-        print(known_args)
+        output_pc = p | 'Read' >> ReadFromText(known_args.input)
+        output_pc | 'Write' >> WriteToText(known_args.output)
+
     
 if __name__ == '__main__':
     run()
